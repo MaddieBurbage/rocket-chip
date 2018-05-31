@@ -9,3 +9,6 @@ generated-src-debug
 kernel
 kernel.hex
 verilator/
+logfile
+test.vcd
+ver.sh

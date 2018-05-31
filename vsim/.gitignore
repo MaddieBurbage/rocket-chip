@@ -15,3 +15,7 @@ timestamp
 *.vcd
 generated-src
 output
+.restartSimSession.tcl.old
+.synopsys_dve_rebuild.tcl
+cnvmem.mem
+session.inter.vpd.tcl
