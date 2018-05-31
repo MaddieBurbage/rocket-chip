@@ -28,9 +28,16 @@ class JtagDTMKeyDefault extends JtagDTMConfig(
   debugIdleCycles = 5) // Reasonable guess for synchronization.
 
 object dtmJTAGAddrs {
+/*
   def IDCODE       = 0x1
   def DTM_INFO     = 0x10
   def DMI_ACCESS = 0x11
+
+Xilinx available user chain codes are limited, so we hack it here, software needs changing too.
+*/
+  def IDCODE       = 0x9
+  def DTM_INFO     = 0x22
+  def DMI_ACCESS = 0x23
 }
 
 class DMIAccessUpdate(addrBits: Int) extends Bundle {
@@ -242,7 +249,8 @@ class DebugTransportModuleJTAG(debugAddrBits: Int, c: JtagDTMConfig)
   idcode.partNumber := c.idcodePartNum.U
   idcode.mfrId      := io.jtag_mfr_id
 
-  val tapIO = JtagTapGenerator(irLength = 5,
+// Xilinx requires an IR length of 6, because of all the other configuration functions etc.
+  val tapIO = JtagTapGenerator(irLength = 6, // (was 5 for official Rocket source code)
     instructions = Map(
       dtmJTAGAddrs.DMI_ACCESS -> dmiAccessChain,
       dtmJTAGAddrs.DTM_INFO   -> dtmInfoChain),
