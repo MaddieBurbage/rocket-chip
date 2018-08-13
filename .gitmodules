@@ -10,6 +10,3 @@
 [submodule "firrtl"]
 	path = firrtl
 	url = https://github.com/ucb-bar/firrtl.git
-[submodule "riscv-tools"]
-	path = riscv-tools
-	url = https://github.com/jrrk/riscv-tools.git
