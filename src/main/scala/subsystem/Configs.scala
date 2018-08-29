@@ -41,10 +41,16 @@ class WithNBigCores(n: Int) extends Config((site, here, up) => {
         divEarlyOut = true))),
       dcache = Some(DCacheParams(
         rowBits = site(SystemBusKey).beatBits,
-        nMSHRs = 0,
+        nSets = 64,
+        nWays = 16,
+        nTLBEntries = 64,
+        nMSHRs = 1,
         blockBytes = site(CacheBlockBytes))),
       icache = Some(ICacheParams(
         rowBits = site(SystemBusKey).beatBits,
+        nSets = 64,
+        nWays = 8,
+        nTLBEntries = 64,
         blockBytes = site(CacheBlockBytes))))
     List.tabulate(n)(i => big.copy(hartId = i))
   }
