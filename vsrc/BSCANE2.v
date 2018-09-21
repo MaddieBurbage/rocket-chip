@@ -22,15 +22,15 @@ module BSCANE2 (
   parameter DISABLE_JTAG = "FALSE";
   parameter integer JTAG_CHAIN = 1;
 
-  pulldown (CAPTURE);
-  pulldown (DRCK);
-  pulldown (RESET);
-  pulldown (RUNTEST);
-  pulldown (SEL);
-  pulldown (SHIFT);
-  pulldown (TCK);
-  pulldown (TDI);
-  pulldown (TMS);
-  pulldown (UPDATE);
+  supply0 CAPTURE;
+  supply0 DRCK;
+  supply0 RESET;
+  supply0 RUNTEST;
+  supply0 SEL;
+  supply0 SHIFT;
+  supply0 TCK;
+  supply0 TDI;
+  supply0 TMS;
+  supply0 UPDATE;
 
 endmodule
