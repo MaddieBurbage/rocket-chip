@@ -189,29 +189,32 @@ class WithNBreakpoints(hwbp: Int) extends Config ((site, here, up) => {
   }
 })
 
-class WithRoccExample extends Config((site, here, up) => {
+class WithEphelia extends Config((site, here, up) => {
   case RocketTilesKey => up(RocketTilesKey, site) map { r =>
     r.copy(rocc =
       Seq(
         RoCCParams(
           opcodes = OpcodeSet.custom0,
           generator = (p: Parameters) => {
-            val accumulator = LazyModule(new AccumulatorExample()(p))
-            accumulator}),
+            val ephelia = LazyModule(new EpheliaAccel()(p))
+            ephelia})
+      )
+    )
+  }
+})
+
+class WithCombinations extends Config((site, here, up) => {
+  case RocketTilesKey => up(RocketTilesKey, site) map { r =>
+    r.copy(rocc =
+      Seq(
         RoCCParams(
-          opcodes = OpcodeSet.custom1,
-          generator = (p: Parameters) => {
-            val translator = LazyModule(new TranslatorExample()(p))
-            translator},
-          nPTWPorts = 1),
-        RoCCParams(
-          opcodes = OpcodeSet.custom2,
-          generator = (p: Parameters) => {
-            val counter = LazyModule(new CharacterCountExample()(p))
-            counter
-          })
-        ))
-    }
+	  opcodes = OpcodeSet.custom0,
+	  generator = (p: Parameters) => {
+	    val combinations = LazyModule(new Combinations()(p))
+	    combinations})
+      )
+    )
+  }
 })
 
 class WithDefaultBtb extends Config((site, here, up) => {

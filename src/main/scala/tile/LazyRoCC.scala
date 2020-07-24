@@ -53,7 +53,6 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val interrupt = Bool(OUTPUT)
   val exception = Bool(INPUT)
 
-  override def cloneType = new RoCCCoreIO()(p).asInstanceOf[this.type]
 }
 
 /** Base classes for Diplomatic TL2 RoCC units **/
@@ -64,7 +63,7 @@ abstract class LazyRoCC(implicit p: Parameters) extends LazyModule {
   val tlNode: TLNode = TLIdentityNode()
 }
 
-class RoCCIO(outer: LazyRoCC)(implicit p: Parameters) extends RoCCCoreIO()(p) {
+class RoCCIO(val outer: LazyRoCC)(implicit p: Parameters) extends RoCCCoreIO()(p) {
   // Should be handled differently, eventually
   val ptw = Vec(p(RoccNPTWPorts), new TLBPTWIO)
   val fpu_req = Decoupled(new FPInput)
