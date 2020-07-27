@@ -268,6 +268,9 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
   val reg_dscratch = Reg(UInt(width = xLen))
   val reg_singleStepped = Reg(Bool())
 
+  //CUSTOM CSRs
+  val reg_ips = Reg(init=UInt(22, 5))
+
   val reg_tselect = Reg(UInt(width = log2Up(nBreakpoints)))
   val reg_bp = Reg(Vec(1 << log2Up(nBreakpoints), new BP))
   val reg_pmp = Reg(Vec(nPMPs, new PMPReg))
@@ -360,7 +363,10 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
     CSRs.mepc -> reg_mepc.sextTo(xLen),
     CSRs.mbadaddr -> reg_mbadaddr.sextTo(xLen),
     CSRs.mcause -> reg_mcause,
-    CSRs.mhartid -> io.hartid)
+    CSRs.mhartid -> io.hartid,
+    //CUSTOM CSRs
+    CSRs.ips -> reg_ips
+  )
 
   val debug_csrs = LinkedHashMap[Int,Bits](
     CSRs.dcsr -> reg_dcsr.asUInt,

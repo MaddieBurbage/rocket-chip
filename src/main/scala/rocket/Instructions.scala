@@ -368,6 +368,10 @@ object CSRs {
   val dcsr = 0x7b0
   val dpc = 0x7b1
   val dscratch = 0x7b2
+
+  //CUSTOM CSRs
+  val ips = 0x800
+
   val mcycle = 0xb00
   val minstret = 0xb02
   val mhpmcounter3 = 0xb03
@@ -581,6 +585,10 @@ object CSRs {
     res += dcsr
     res += dpc
     res += dscratch
+
+    //CUSTOM CSRs
+    res += ips
+    
     res += mcycle
     res += minstret
     res += mhpmcounter3
