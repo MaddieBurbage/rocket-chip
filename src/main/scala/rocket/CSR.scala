@@ -268,9 +268,6 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
   val reg_dscratch = Reg(UInt(width = xLen))
   val reg_singleStepped = Reg(Bool())
 
-  //CUSTOM CSRs
-  val reg_ips = Reg(init=UInt(22, 5))
-
   val reg_tselect = Reg(UInt(width = log2Up(nBreakpoints)))
   val reg_bp = Reg(Vec(1 << log2Up(nBreakpoints), new BP))
   val reg_pmp = Reg(Vec(nPMPs, new PMPReg))
@@ -309,6 +306,23 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
   (io.counters zip reg_hpmevent) foreach { case (c, e) => c.eventSel := e }
   val reg_hpmcounter = io.counters.map(c => WideCounter(CSR.hpmWidth, c.inc, reset = false))
   val hpm_mask = reg_mcounteren & Mux((!usingVM).B || reg_mstatus.prv === PRV.S, delegable_counters.U, reg_scounteren)
+
+
+  //CUSTOM CSRs
+  val reg_ips = Reg(UInt(0, xLen))
+
+  // Supporting logic
+  val lastInstRet = Reg(UInt(width = 64))
+
+  val cps = BitPat("b10111110101111000010000000")
+  val cycleCounter = Reg(UInt(0, 26))
+  cycleCounter := 1.U + cycleCounter
+
+  when(cycleCounter === cps) {
+    lastInstRet := reg_instret
+    reg_ips := (reg_instret - lastInstRet)(xLen-1, 0)
+    cycleCounter := 0.U
+  }
 
   val mip = Wire(init=reg_mip)
   mip.lip := (io.interrupts.lip: Seq[Bool])
