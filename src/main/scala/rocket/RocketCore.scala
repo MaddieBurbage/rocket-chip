@@ -62,48 +62,50 @@ class Rocket(implicit p: Parameters) extends CoreModule()(p)
   def pipelineIDToWB[T <: Data](x: T): T =
     RegEnable(RegEnable(RegEnable(x, !ctrl_killd), ex_pc_valid), mem_pc_valid)
   val perfEvents = new EventSets(Seq(
-    new EventSet((mask, hits) => Mux(mask(0), wb_xcpt, wb_valid && pipelineIDToWB((mask & hits).orR)), Seq(
-      ("exception", () => false.B),
-      ("load", () => id_ctrl.mem && id_ctrl.mem_cmd === M_XRD && !id_ctrl.fp),
-      ("store", () => id_ctrl.mem && id_ctrl.mem_cmd === M_XWR && !id_ctrl.fp),
-      ("amo", () => Bool(usingAtomics) && id_ctrl.mem && (isAMO(id_ctrl.mem_cmd) || id_ctrl.mem_cmd.isOneOf(M_XLR, M_XSC))),
-      ("system", () => id_ctrl.csr =/= CSR.N),
-      ("arith", () => id_ctrl.wxd && !(id_ctrl.jal || id_ctrl.jalr || id_ctrl.mem || id_ctrl.fp || id_ctrl.div || id_ctrl.csr =/= CSR.N)),
-      ("branch", () => id_ctrl.branch),
-      ("jal", () => id_ctrl.jal),
-      ("jalr", () => id_ctrl.jalr))
+    new EventSet((mask, hits) => Mux(mask(0), wb_xcpt, wb_valid && pipelineIDToWB((mask & hits).orR)), Seq( //Set 0
+      ("exception", () => false.B), //Bit 8
+      ("load", () => id_ctrl.mem && id_ctrl.mem_cmd === M_XRD && !id_ctrl.fp), //Bit 9
+      ("store", () => id_ctrl.mem && id_ctrl.mem_cmd === M_XWR && !id_ctrl.fp), //Bit 10
+      ("amo", () => Bool(usingAtomics) && id_ctrl.mem && (isAMO(id_ctrl.mem_cmd) || id_ctrl.mem_cmd.isOneOf(M_XLR, M_XSC))), //Bit 11
+      ("system", () => id_ctrl.csr =/= CSR.N), //12
+      ("arith", () => id_ctrl.wxd && !(id_ctrl.jal || id_ctrl.jalr || id_ctrl.mem || id_ctrl.fp || id_ctrl.div || id_ctrl.csr =/= CSR.N)), //13
+      ("branch", () => id_ctrl.branch), //14
+      ("jal", () => id_ctrl.jal), //15
+      ("jalr", () => id_ctrl.jalr)) //16
       ++ (if (!usingMulDiv) Seq() else Seq(
-        ("mul", () => id_ctrl.div && (id_ctrl.alu_fn & ALU.FN_DIV) =/= ALU.FN_DIV),
-        ("div", () => id_ctrl.div && (id_ctrl.alu_fn & ALU.FN_DIV) === ALU.FN_DIV)))
+        ("mul", () => id_ctrl.div && (id_ctrl.alu_fn & ALU.FN_DIV) =/= ALU.FN_DIV), //17
+        ("div", () => id_ctrl.div && (id_ctrl.alu_fn & ALU.FN_DIV) === ALU.FN_DIV))) //18
       ++ (if (!usingFPU) Seq() else Seq(
-        ("fp load", () => id_ctrl.fp && io.fpu.dec.ldst && io.fpu.dec.wen),
-        ("fp store", () => id_ctrl.fp && io.fpu.dec.ldst && !io.fpu.dec.wen),
-        ("fp add", () => id_ctrl.fp && io.fpu.dec.fma && io.fpu.dec.swap23),
-        ("fp mul", () => id_ctrl.fp && io.fpu.dec.fma && !io.fpu.dec.swap23 && !io.fpu.dec.ren3),
-        ("fp mul-add", () => id_ctrl.fp && io.fpu.dec.fma && io.fpu.dec.ren3),
-        ("fp div/sqrt", () => id_ctrl.fp && (io.fpu.dec.div || io.fpu.dec.sqrt)),
-        ("fp other", () => id_ctrl.fp && !(io.fpu.dec.ldst || io.fpu.dec.fma || io.fpu.dec.div || io.fpu.dec.sqrt))))),
-    new EventSet((mask, hits) => (mask & hits).orR, Seq(
-      ("load-use interlock", () => id_ex_hazard && ex_ctrl.mem || id_mem_hazard && mem_ctrl.mem || id_wb_hazard && wb_ctrl.mem),
-      ("long-latency interlock", () => id_sboard_hazard),
-      ("csr interlock", () => id_ex_hazard && ex_ctrl.csr =/= CSR.N || id_mem_hazard && mem_ctrl.csr =/= CSR.N || id_wb_hazard && wb_ctrl.csr =/= CSR.N),
-      ("I$ blocked", () => icache_blocked),
-      ("D$ blocked", () => id_ctrl.mem && dcache_blocked),
-      ("branch misprediction", () => take_pc_mem && mem_direction_misprediction),
-      ("control-flow target misprediction", () => take_pc_mem && mem_misprediction && mem_cfi && !mem_direction_misprediction && !icache_blocked),
-      ("flush", () => wb_reg_flush_pipe),
-      ("replay", () => replay_wb))
+        ("fp load", () => id_ctrl.fp && io.fpu.dec.ldst && io.fpu.dec.wen), //19
+        ("fp store", () => id_ctrl.fp && io.fpu.dec.ldst && !io.fpu.dec.wen), //20
+        ("fp add", () => id_ctrl.fp && io.fpu.dec.fma && io.fpu.dec.swap23), //21
+        ("fp mul", () => id_ctrl.fp && io.fpu.dec.fma && !io.fpu.dec.swap23 && !io.fpu.dec.ren3), //22
+        ("fp mul-add", () => id_ctrl.fp && io.fpu.dec.fma && io.fpu.dec.ren3), //23
+        ("fp div/sqrt", () => id_ctrl.fp && (io.fpu.dec.div || io.fpu.dec.sqrt)), //24
+        ("fp other", () => id_ctrl.fp && !(io.fpu.dec.ldst || io.fpu.dec.fma || io.fpu.dec.div || io.fpu.dec.sqrt))))), //25
+    new EventSet((mask, hits) => (mask & hits).orR, Seq( //Set 1
+      ("load-use interlock", () => id_ex_hazard && ex_ctrl.mem || id_mem_hazard && mem_ctrl.mem || id_wb_hazard && wb_ctrl.mem), //Bit 8
+      ("long-latency interlock", () => id_sboard_hazard), //Bit 9
+      ("csr interlock", () => id_ex_hazard && ex_ctrl.csr =/= CSR.N || id_mem_hazard && mem_ctrl.csr =/= CSR.N || id_wb_hazard && wb_ctrl.csr =/= CSR.N), //10
+      ("I$ blocked", () => icache_blocked), //11
+      ("D$ blocked", () => id_ctrl.mem && dcache_blocked), //12
+      ("branch misprediction", () => take_pc_mem && mem_direction_misprediction), //13
+      ("control-flow target misprediction", () => take_pc_mem && mem_misprediction && mem_cfi && !mem_direction_misprediction && !icache_blocked), //14
+      ("flush", () => wb_reg_flush_pipe), //15
+      ("replay", () => replay_wb)) //16
       ++ (if (!usingMulDiv) Seq() else Seq(
-        ("mul/div interlock", () => id_ex_hazard && ex_ctrl.div || id_mem_hazard && mem_ctrl.div || id_wb_hazard && wb_ctrl.div)))
+        ("mul/div interlock", () => id_ex_hazard && ex_ctrl.div || id_mem_hazard && mem_ctrl.div || id_wb_hazard && wb_ctrl.div))) //17
       ++ (if (!usingFPU) Seq() else Seq(
-        ("fp interlock", () => id_ex_hazard && ex_ctrl.fp || id_mem_hazard && mem_ctrl.fp || id_wb_hazard && wb_ctrl.fp || id_ctrl.fp && id_stall_fpu)))),
-    new EventSet((mask, hits) => (mask & hits).orR, Seq(
-      ("I$ miss", () => io.imem.perf.acquire),
-      ("D$ miss", () => io.dmem.perf.acquire),
-      ("D$ release", () => io.dmem.perf.release),
-      ("ITLB miss", () => io.imem.perf.tlbMiss),
-      ("DTLB miss", () => io.dmem.perf.tlbMiss),
-      ("L2 TLB miss", () => io.ptw.perf.l2miss)))))
+        ("fp interlock", () => id_ex_hazard && ex_ctrl.fp || id_mem_hazard && mem_ctrl.fp || id_wb_hazard && wb_ctrl.fp || id_ctrl.fp && id_stall_fpu))) //18
+      ++ (if (!usingRoCC) Seq() else Seq(
+        ("rocc stall", () => id_ctrl.rocc && rocc_blocked)))), //19
+    new EventSet((mask, hits) => (mask & hits).orR, Seq( //Set 2
+      ("I$ miss", () => io.imem.perf.acquire), //Bit 8
+      ("D$ miss", () => io.dmem.perf.acquire), //9
+      ("D$ release", () => io.dmem.perf.release), //10
+      ("ITLB miss", () => io.imem.perf.tlbMiss), //11
+      ("DTLB miss", () => io.dmem.perf.tlbMiss), //12
+      ("L2 TLB miss", () => io.ptw.perf.l2miss))))) //13
 
   val decode_table = {
     (if (usingMulDiv) new MDecode +: (xLen > 32).option(new M64Decode).toSeq else Nil) ++:
@@ -535,11 +537,17 @@ class Rocket(implicit p: Parameters) extends CoreModule()(p)
                  wb_reg_wdata)))
   when (rf_wen) { rf.write(rf_waddr, rf_wdata) }
 
+  val rocc_blocked = Reg(Bool())
+
   // hook up control/status regfile
   csr.io.decode(0).csr := id_raw_inst(0)(31,20)
   csr.io.exception := wb_xcpt
   csr.io.cause := wb_cause
   csr.io.retire := wb_valid
+  //CUSTOM
+  csr.io.rocc_status.block := !io.rocc.cmd.valid && wb_ctrl.rocc
+  csr.io.rocc_status.new_inst := io.rocc.cmd.valid
+
   csr.io.inst(0) := (if (usingCompressed) Cat(Mux(wb_reg_raw_inst(1, 0).andR, wb_reg_inst >> 16, 0.U), wb_reg_raw_inst(15, 0)) else wb_reg_inst)
   csr.io.interrupts := io.interrupts
   csr.io.hartid := io.hartid
@@ -610,7 +618,7 @@ class Rocket(implicit p: Parameters) extends CoreModule()(p)
 
   val dcache_blocked = Reg(Bool())
   dcache_blocked := !io.dmem.req.ready && (io.dmem.req.valid || dcache_blocked)
-  val rocc_blocked = Reg(Bool())
+
   rocc_blocked := !wb_xcpt && !io.rocc.cmd.ready && (io.rocc.cmd.valid || rocc_blocked)
 
   val ctrl_stalld =

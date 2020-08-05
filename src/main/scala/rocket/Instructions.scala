@@ -371,6 +371,37 @@ object CSRs {
 
   //CUSTOM CSRs
   val ips = 0x800
+  val rps = 0x801
+  val sps = 0x802
+  /*val hpmtimed3 = 0x803
+  val hpmtimed4 = 0x804
+  val hpmtimed5 = 0x805
+  val hpmtimed6 = 0x806
+  val hpmtimed7 = 0x807
+  val hpmtimed8 = 0x808
+  val hpmtimed9 = 0x809
+  val hpmtimed10 = 0x810
+  val hpmtimed11 = 0x811
+  val hpmtimed12 = 0x812
+  val hpmtimed13 = 0x813
+  val hpmtimed14 = 0x814
+  val hpmtimed15 = 0x815
+  val hpmtimed16 = 0x816
+  val hpmtimed17 = 0x817
+  val hpmtimed18 = 0x818
+  val hpmtimed19 = 0x819
+  val hpmtimed20 = 0x820
+  val hpmtimed21 = 0x821
+  val hpmtimed22 = 0x822
+  val hpmtimed23 = 0x823
+  val hpmtimed24 = 0x824
+  val hpmtimed25 = 0x825
+  val hpmtimed26 = 0x826
+  val hpmtimed27 = 0x827
+  val hpmtimed28 = 0x828
+  val hpmtimed29 = 0x829
+  val hpmtimed30 = 0x830
+  val hpmtimed31 = 0x831 */
 
   val mcycle = 0xb00
   val minstret = 0xb02
@@ -588,6 +619,8 @@ object CSRs {
 
     //CUSTOM CSRs
     res += ips
+    res += rps
+    res += sps
     
     res += mcycle
     res += minstret

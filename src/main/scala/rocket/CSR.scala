@@ -142,6 +142,9 @@ object CSR
   val nHPM = nCtr - firstHPM
   val hpmWidth = 40
 
+  //CUSTOM HPM
+  //val firstTimed = CSRs.hpmtimed3
+
   val maxPMPs = 16
 }
 
@@ -172,6 +175,11 @@ class CSRDecodeIO extends Bundle {
   val system_illegal = Bool(OUTPUT)
 }
 
+class RoccBundle extends Bundle {
+  val block = Bool(INPUT)
+  val new_inst = Bool(INPUT)
+}
+
 class CSRFileIO(implicit p: Parameters) extends CoreBundle
     with HasCoreParameters {
   val interrupts = new CoreInterrupts().asInput
@@ -194,6 +202,7 @@ class CSRFileIO(implicit p: Parameters) extends CoreBundle
   val evec = UInt(OUTPUT, vaddrBitsExtended)
   val exception = Bool(INPUT)
   val retire = UInt(INPUT, log2Up(1+retireWidth))
+  val rocc_status = new RoccBundle
   val cause = UInt(INPUT, xLen)
   val pc = UInt(INPUT, vaddrBitsExtended)
   val tval = UInt(INPUT, vaddrBitsExtended)
@@ -308,19 +317,43 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
   val hpm_mask = reg_mcounteren & Mux((!usingVM).B || reg_mstatus.prv === PRV.S, delegable_counters.U, reg_scounteren)
 
 
-  //CUSTOM CSRs
+  //CUSTOM CSRs for Hardware Performance Monitoring
   val reg_ips = Reg(UInt(0, xLen))
+  val reg_roccps = Reg(UInt(0, xLen))
+  val reg_stallps = Reg(UInt(0, xLen))
+  //Use these to track hpm counters:
+  //val reg_hpmtimed = io.counters.map(c => Reg(init = UInt(0, xLen)))
+  //val reg_hpm3ps = Reg(UInt(0, xLen)) //hpm counters are 40 wide
+
+  // Custom counters
+  val rocc_counter = Reg(UInt(0, xLen))
+  when(io.rocc_status.new_inst) {
+    rocc_counter := rocc_counter + 1.U
+  }
+  val stall_counter = Reg(UInt(0, xLen))
+  when(io.rocc_status.block) {
+    stall_counter := stall_counter + 1.U
+  }
 
   // Supporting logic
   val lastInstRet = Reg(UInt(width = 64))
+  val lastRoCC = Reg(UInt(width = xLen))
+  val lastStall = Reg(UInt(width = xLen))
+  //val lastHPM = reg_hpmcounter.map(c => Reg(init = UInt(0, xLen)))
 
-  val cps = BitPat("b10111110101111000010000000")
+  //Time: Second Counter
+  val cps = BitPat("b10111110101111000010000000") //50 million cycles (26 wide)
   val cycleCounter = Reg(UInt(0, 26))
   cycleCounter := 1.U + cycleCounter
 
-  when(cycleCounter === cps) {
+  when(cycleCounter === cps) { //Every second
     lastInstRet := reg_instret
+    lastRoCC := rocc_counter
+    lastStall := stall_counter
     reg_ips := (reg_instret - lastInstRet)(xLen-1, 0)
+    reg_roccps := (rocc_counter - lastRoCC)
+    reg_stallps := (stall_counter - lastStall)
+    //(reg_hpmtimed zip reg_hpmcounter) foreach { case(t, c) => t := c }
     cycleCounter := 0.U
   }
 
@@ -377,9 +410,7 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
     CSRs.mepc -> reg_mepc.sextTo(xLen),
     CSRs.mbadaddr -> reg_mbadaddr.sextTo(xLen),
     CSRs.mcause -> reg_mcause,
-    CSRs.mhartid -> io.hartid,
-    //CUSTOM CSRs
-    CSRs.ips -> reg_ips
+    CSRs.mhartid -> io.hartid
   )
 
   val debug_csrs = LinkedHashMap[Int,Bits](
@@ -417,6 +448,15 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
       read_mapping += CSRs.mcounteren -> reg_mcounteren
       read_mapping += CSRs.cycle -> reg_cycle
       read_mapping += CSRs.instret -> reg_instret
+
+      //CUSTOM CSRs
+      read_mapping += CSRs.ips -> reg_ips
+      read_mapping += CSRs.rps -> reg_roccps
+      read_mapping += CSRs.sps -> reg_stallps
+      /*(reg_hpmtimed zipWithIndex) foreach { case (t, i) =>
+        read_mapping += (i + CSR.firstTimed) -> t
+      }*/
+
     }
 
     if (xLen == 32) {
