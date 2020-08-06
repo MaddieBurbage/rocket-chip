@@ -54,6 +54,10 @@ class DualChannelDualBankConfig extends Config(
 
 class CombinationsConfig extends Config(new WithCombinations ++ new DefaultConfig)
 
+class DancingLinksConfig extends Config(new WithDancingLinks ++ new DefaultConfig)
+
+class MemTestConfig extends Config(new WithMemTest ++ new DefaultConfig)
+
 class Edge128BitConfig extends Config(
   new WithEdgeDataBits(128) ++ new BaseConfig)
 class Edge32BitConfig extends Config(

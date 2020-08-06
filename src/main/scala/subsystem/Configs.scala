@@ -217,6 +217,34 @@ class WithCombinations extends Config((site, here, up) => {
   }
 })
 
+class WithDancingLinks extends Config((site, here, up) => {
+  case RocketTilesKey => up(RocketTilesKey, site) map { r =>
+    r.copy(rocc =
+      Seq(
+        RoCCParams(
+	  opcodes = OpcodeSet.custom0,
+	  generator = (p: Parameters) => {
+	    val dancingLinks = LazyModule(new DancingLinks()(p))
+	    dancingLinks})
+      )
+    )
+  }
+})
+
+class WithMemTest extends Config((site, here, up) => {
+  case RocketTilesKey => up(RocketTilesKey, site) map { r =>
+    r.copy(rocc =
+      Seq(
+        RoCCParams(
+	  opcodes = OpcodeSet.custom0,
+	  generator = (p: Parameters) => {
+	    val memTest = LazyModule(new MemTest()(p))
+	    memTest})
+      )
+    )
+  }
+})
+
 class WithDefaultBtb extends Config((site, here, up) => {
   case RocketTilesKey => up(RocketTilesKey, site) map { r =>
     r.copy(btb = Some(BTBParams()))
@@ -273,7 +301,7 @@ class WithRationalRocketTiles extends Config((site, here, up) => {
 class WithEdgeDataBits(dataBits: Int) extends Config((site, here, up) => {
   case MemoryBusKey => up(MemoryBusKey, site).copy(beatBytes = dataBits/8)
   case ExtIn => up(ExtIn, site).copy(beatBytes = dataBits/8)
-  
+
 })
 
 class WithJtagDTM extends Config ((site, here, up) => {
