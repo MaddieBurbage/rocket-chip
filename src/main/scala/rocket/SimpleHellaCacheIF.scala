@@ -23,6 +23,9 @@ class SimpleHellaCacheIFReplayQueue(depth: Int)
     val nack = Valid(Bits(width = coreDCacheReqTagBits)).flip
     val resp = Valid(new HellaCacheResp).flip
     val replay = Decoupled(new HellaCacheReq)
+    val exception = Bool(INPUT)
+    val inf = Bool(OUTPUT)
+    val dev = Bool(OUTPUT)
   }
 
   // Registers to store the sent request
@@ -57,12 +60,16 @@ class SimpleHellaCacheIFReplayQueue(depth: Int)
   // Don't allow new requests if there is are replays waiting
   // or something being nacked.
   io.req.ready := !inflight.andR && !nackq.io.deq.valid && !io.nack.valid
+  io.inf := inflight.andR
+  io.dev := nackq.io.deq.valid
 
   // Match on the tags to determine the index of nacks or responses
   val nack_onehot = Cat(reqs.map(_.tag === io.nack.bits).reverse) & inflight
   val resp_onehot = Cat(reqs.map(_.tag === io.resp.bits.tag).reverse) & inflight
+  val s2_replay = RegNext(RegNext(io.replay.fire()))
+  val replay_exception = s2_replay && io.exception
 
-  val replay_complete = io.resp.valid && replaying && io.resp.bits.tag === next_replay_req.tag
+  val replay_complete = replaying && (io.resp.valid && io.resp.bits.tag === next_replay_req.tag || replay_exception)
   val nack_head = io.nack.valid && nackq.io.deq.valid && io.nack.bits === next_replay_req.tag
 
   // Enqueue to the nack queue if there is a nack that is not in response to
@@ -80,7 +87,7 @@ class SimpleHellaCacheIFReplayQueue(depth: Int)
   // Set inflight bit when a request is made
   // Clear it when it is successfully completed
   inflight := (inflight | Mux(io.req.fire(), next_inflight_onehot, UInt(0))) &
-                          ~Mux(io.resp.valid, resp_onehot, UInt(0))
+                          ~Mux(io.resp.valid, resp_onehot, UInt(0)) & ~Mux(io.exception, nack_onehot, UInt(0))
 
   when (io.req.fire()) {
     reqs(next_inflight) := io.req.bits
@@ -130,6 +137,16 @@ class SimpleHellaCacheIF(implicit p: Parameters) extends Module
   replayq.io.nack.bits := s2_req_tag
   replayq.io.resp := io.cache.resp
   io.requestor.resp := io.cache.resp
+
+  //Debugging additions:
+  val ourException = s2_req_fire && io.cache.s2_xcpt.asUInt.orR
+  replayq.io.exception := ourException
+  io.requestor.s2_xcpt := Mux(ourException, io.cache.s2_xcpt, 0.U.asTypeOf(io.cache.s2_xcpt))
+  io.requestor.perf := io.cache.perf
+  io.requestor.s2_nack := io.cache.s2_nack
+
+  io.requestor.replay_next := replayq.io.inf
+  io.requestor.ordered := replayq.io.dev
 
   assert(!RegNext(RegNext(io.cache.req.fire())) || !io.cache.s2_xcpt.asUInt.orR,
          "SimpleHellaCacheIF exception")
