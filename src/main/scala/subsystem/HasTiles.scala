@@ -12,7 +12,11 @@ import freechips.rocketchip.util._
 
 class ClockedTileInputs(implicit val p: Parameters) extends ParameterizedBundle
     with HasExternallyDrivenTileConstants
-    with Clocked
+    with Clocked {
+      // 7-segment display wires
+      val AN = UInt(OUTPUT, width = 8.W)
+      val CA = UInt(OUTPUT, width = 8.W)
+    }
 
 trait HasTiles { this: BaseSubsystem =>
   implicit val p: Parameters
@@ -50,6 +54,9 @@ trait HasTilesModuleImp extends LazyModuleImp
     tile.reset := wire.reset
     tile.constants.hartid := wire.hartid
     tile.constants.reset_vector := wire.reset_vector
+    // Connect 7-segment display to the tiles
+    wire.AN := tile.constants.AN
+    wire.CA := tile.constants.CA
   }
 }
 

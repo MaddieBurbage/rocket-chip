@@ -48,15 +48,19 @@ class DualChannelDualBankConfig extends Config(
   new WithNMemoryChannels(2) ++
   new WithNBanksPerMemChannel(2) ++ new BaseConfig)
 
-//class RoccExampleConfig extends Config(new WithRoccExample ++ new DefaultConfig)
+/** Our Accelerators and their Configurations **/
+class RoccExampleConfig extends Config(new WithRoccExample ++ new DefaultConfig)
 
-//class EpheliaConfig extends Config(new WithEphelia ++ new DefaultConfig)
+class EpheliaConfig extends Config(new WithEphelia ++ new DefaultConfig)
 
 class CombinationsConfig extends Config(new WithCombinations ++ new DefaultConfig)
 
 class DancingLinksConfig extends Config(new WithDancingLinks ++ new DefaultConfig)
 
 class MemTestConfig extends Config(new WithMemTest ++ new DefaultConfig)
+
+class LightDebuggerConfig extends Config(new WithLightDebugger ++ new DefaultConfig)
+/** End of our accelerator's configs **/
 
 class Edge128BitConfig extends Config(
   new WithEdgeDataBits(128) ++ new BaseConfig)

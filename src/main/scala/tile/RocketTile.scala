@@ -128,6 +128,10 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   core.io.rocc.busy := roccCore.busy
   core.io.rocc.interrupt := roccCore.interrupt
 
+  //Connect out the 7-segment display
+  constants.AN := roccCore.lights.AN
+  constants.CA := roccCore.lights.CA
+
   // Rocket has higher priority to DTIM than other TileLink clients
   outer.dtim_adapter.foreach { lm => dcachePorts += lm.module.io.dmem }
 

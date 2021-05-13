@@ -45,6 +45,14 @@ class RoCCResponse(implicit p: Parameters) extends CoreBundle()(p) {
   val data = Bits(width = xLen)
 }
 
+/** The 7-segment display's signals bundle. (For Debugging) */
+class DisplayIO extends Bundle
+{
+  // 7-segment display wires
+  val AN = UInt(OUTPUT, width = 8.W)
+  val CA = UInt(OUTPUT, width = 8.W)
+}
+
 class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val cmd = Decoupled(new RoCCCommand).flip
   val resp = Decoupled(new RoCCResponse)
@@ -52,7 +60,7 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val busy = Bool(OUTPUT)
   val interrupt = Bool(OUTPUT)
   val exception = Bool(INPUT)
-
+  val lights = new DisplayIO
 }
 
 /** Base classes for Diplomatic TL2 RoCC units **/
@@ -117,6 +125,8 @@ trait HasLazyRoCCModule[+L <: BaseTile with HasLazyRoCC] extends CanHavePTWModul
     }
     roccCore.busy := cmdRouter.io.busy || outer.roccs.map(_.module.io.busy).reduce(_ || _)
     roccCore.interrupt := outer.roccs.map(_.module.io.interrupt).reduce(_ || _)
+    roccCore.lights.AN := outer.roccs.map(_.module.io.lights.AN).reduce(_ max _)
+    roccCore.lights.CA := outer.roccs.map(_.module.io.lights.CA).reduce(_ max _)
 
     fpuOpt foreach { fpu =>
       if (usingFPU && nFPUPorts > 0) {
@@ -263,7 +273,7 @@ class CharacterCountExampleModule(outer: CharacterCountExample)(implicit p: Para
   with HasL1CacheParameters {
   val cacheParams = tileParams.icache.get
 
-  private val blockOffset = blockOffBits 
+  private val blockOffset = blockOffBits
   private val beatOffset = log2Up(cacheDataBits/8)
 
   val needle = Reg(UInt(width = 8))

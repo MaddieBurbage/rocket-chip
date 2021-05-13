@@ -190,4 +190,8 @@ trait HasExternallyDrivenTileConstants extends Bundle with HasTileParameters {
   val reset_vector = UInt(INPUT, resetVectorLen)
 }
 
-class TileInputConstants(implicit val p: Parameters) extends ParameterizedBundle with HasExternallyDrivenTileConstants
+class TileInputConstants(implicit val p: Parameters) extends ParameterizedBundle with HasExternallyDrivenTileConstants {
+  // 7-segment display wires
+  val AN = UInt(OUTPUT, width = 8.W)
+  val CA = UInt(OUTPUT, width = 8.W)
+}
