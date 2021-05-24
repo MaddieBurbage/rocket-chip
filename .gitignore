@@ -4,3 +4,9 @@ project/target
 *~
 .addons-dont-touch
 /lib/
+.bloop/
+.metals/
+.vscode/
+project/.bloop/
+project/metals.sbt
+project/project/
