@@ -1,4 +1,4 @@
-//Simple Combinational Accelerator, based on the fortyTwo accelerator template.
+// Combinatorial Sequence-Generating Accelerator
 // (c) Maddie Burbage, 2020, for the Bailey Research Group at Williams
 
 package freechips.rocketchip.tile
@@ -8,12 +8,12 @@ import freechips.rocketchip.config._ //For Config
 import freechips.rocketchip.diplomacy._ //For LazyModule
 import freechips.rocketchip.rocket.{HellaCacheReq} //For outward connections
 
-//Wrapper for the accelerator
+// Wrapper for the accelerator
 class Combinations()(implicit p: Parameters) extends LazyRoCC {
     override lazy val module = new CombinationsImp(this)
 }
 
-//Main accelerator class, directs instruction inputs to functions for computation
+// Main accelerator class, directs instruction inputs to functions for computation
 class CombinationsImp(outer: Combinations)(implicit p: Parameters) extends LazyRoCCModule(outer){
     //Accelerator states: idle, busy (accessing memory), resp (sending response)
     val s_idle :: s_busy :: s_resp :: Nil = Enum(Bits(), 3)
@@ -33,7 +33,7 @@ class CombinationsImp(outer: Combinations)(implicit p: Parameters) extends LazyR
 
     //Answers for each function: FixedWeight, General, Ranged, then memory versions of each (functions 0-6)
     val outputs = Array(nextCombination.fixedWeight(fastLength(5,0), fastPrevious), nextCombination.generalCombinations(fastLength(5,0), fastPrevious), nextCombination.rangedCombinations(fastLength(5,0), fastPrevious, fastLength(11,6), fastLength(17,12)))
-
+    val exceptions = Reg(init=0.U(6.W)) // Remember which memory-access exceptions have happened
 
     //Command and response states
     io.cmd.ready := state === s_idle
@@ -42,9 +42,10 @@ class CombinationsImp(outer: Combinations)(implicit p: Parameters) extends LazyR
     //Accelerator response data
     val summedReturns = Reg(init = 0.U(64.W))
     //For a 3-bit function code, bit 2 sets whether memory is used or not, and bits 1 and 0 set which combination to use
-    val lookups = Array(0.U->outputs(0),1.U->outputs(1), 2.U->outputs(2),
-        4.U->summedReturns, 5.U->summedReturns, 6.U->summedReturns)
-    io.resp.bits.data := MuxLookup(function, outputs(0), lookups)
+    val lookups = Array(0.U->outputs(0),1.U->outputs(1), 2.U->outputs(2), 4.U->summedReturns, 5.U->summedReturns, 6.U->summedReturns)
+    when(function(2) === 0.U) {
+        io.resp.bits.data := MuxLookup(function(1,0), outputs(0), lookups)
+    }
     io.resp.bits.rd := rd
 
 
@@ -65,6 +66,9 @@ class CombinationsImp(outer: Combinations)(implicit p: Parameters) extends LazyR
             previous := io.cmd.bits.rs2
     	    state := s_resp
     	}
+
+        //Reset exceptions
+        exceptions := 0.U
     }
 
     //When done with an instruction
@@ -74,9 +78,6 @@ class CombinationsImp(outer: Combinations)(implicit p: Parameters) extends LazyR
 
 
     //Memory-access state
-    val memAccesses = Reg(init = 0.U(4.W)) //Whether all memory requests have been resolved
-    val accessesChange = Wire(UInt(4.W))
-    accessesChange := (io.mem.req.fire() & 1.U(4.W)) - (io.mem.resp.valid & 1.U(4.W))//The latest amount of memory accesses either started or finished
 
     //Source of new combination data
     val nextCombinations = Array(memoryAccess.cycleCombinations(fastLength, io.mem.req.fire(), io.cmd.fire(), 0), memoryAccess.cycleCombinations(fastLength, io.mem.req.fire(), io.cmd.fire(), 1), memoryAccess.cycleCombinations(fastLength, io.mem.req.fire(), io.cmd.fire(), 2))
@@ -86,39 +87,39 @@ class CombinationsImp(outer: Combinations)(implicit p: Parameters) extends LazyR
     //Request and response controls
     //When a request is sent, set up next cycle's response data
     when(io.mem.req.fire()) {
-        memAccesses := memAccesses + accessesChange
         currentAddress := currentAddress + 8.U
-	printf("combo: %x addr: %x mem %x\n", combinationStream, currentAddress, memAccesses)
+	printf("combo: %x addr: %x\n", combinationStream, currentAddress)
     }
 
     //When a response is received, save response data
     when(io.mem.resp.valid) {
-        memAccesses := memAccesses + accessesChange
         summedReturns := summedReturns + io.mem.resp.bits.data
-        printf("tag: %x addr: %x mem %x\n", io.mem.resp.bits.tag, io.mem.resp.bits.addr, memAccesses)
+        printf("tag: %x addr: %x\n", io.mem.resp.bits.tag, io.mem.resp.bits.addr)
     }
 
 
     //Controls for accessing memory
     val cycleOver = combinationStream === nextCombination.doneSignal
-    val finished = cycleOver //&& memAccesses === 0.U
 
     //Switch out of memory mode when finished
-    when(tryStore && finished) {
+    when(tryStore && (cycleOver || io.mem.s2_xcpt.asUInt.orR)) {
 	    state := s_resp
+        exceptions := io.mem.s2_xcpt.asUInt | exceptions
     }
 
+    // Return 0 for no errors, or return the memory exception
+    when(function(2) === 1.U) {
+        io.resp.bits.data := exceptions
+    }
 
     //Memory request interface
     io.mem.req.valid := tryStore && !cycleOver
     io.busy := tryStore
     io.mem.req.bits.addr := currentAddress
     io.mem.req.bits.tag :=  combinationStream(5,0) //Change for out-of-order
-    io.mem.req.bits.cmd := 1.U
+    io.mem.req.bits.cmd := 1.U // We always write
     io.mem.req.bits.data := combinationStream //combinationStream
     io.mem.req.bits.typ := 3.U // For 64-bit width of response, see RoCC Doc V2
-    //io.mem.req.bits.size := log2Ceil(8).U
-    //io.mem.req.bits.signed := Bool(false)
     io.mem.req.bits.phys := Bool(false)
 
     //Always false
