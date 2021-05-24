@@ -1,5 +1,9 @@
-Rocket Chip Generator :rocket: [![Build Status](https://travis-ci.org/freechipsproject/rocket-chip.svg?branch=master)](https://travis-ci.org/freechipsproject/rocket-chip)
+Rocket Chip Generator :rocket:
 =====================
+
+This is my fork of the version of rocket chip used for lowRISC, v0.6. The Rocket Chip is a RISC-V processor designed in Chisel/Scala, which lowRISC extends to target the Nexys A7. In the Bailey Research group at Williams, we modify the Rocket Chip and extend it with accelerators and debuggers. Our accelerators are contained in src/main/scala/tile, and most updates are contained in src/main/scala. For more info, see our [lowRISC extensions](https://github.com/MaddieBurbage/lowrisc-extended).
+
+## Original Rocket Chip Information
 
 This repository contains the Rocket chip generator necessary to instantiate
 the RISC-V Rocket Core. For more information on Rocket Chip, please consult our [technical report](http://www.eecs.berkeley.edu/Pubs/TechRpts/2016/EECS-2016-17.html).
